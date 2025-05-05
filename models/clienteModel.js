@@ -1,0 +1,62 @@
+const db = require('../database/connection');
+
+const Cliente = {
+  // Buscar todos os clientes
+  listarTodos: async () => {
+    const [rows] = await db.query('SELECT * FROM CLIENTE');
+    return rows;
+  },
+
+  // Buscar um cliente por ID
+  buscarPorId: async (id) => {
+    const [rows] = await db.query('SELECT * FROM CLIENTE WHERE idCliente = ?', [id]);
+    return rows;
+  },
+
+  // Criar novo cliente
+  criar: async (cliente) => {
+    const sql = `
+      INSERT INTO CLIENTE (nome, sobrenome, logradouro, bairro, cidade, uf, email)
+      VALUES (?, ?, ?, ?, ?, ?, ?)`;
+    const values = [
+      cliente.nome,
+      cliente.sobrenome,
+      cliente.logradouro,
+      cliente.bairro,
+      cliente.cidade,
+      cliente.uf,
+      cliente.email
+    ];
+    const [resultado] = await db.query(sql, values);
+    return resultado;
+  },
+
+  // Atualizar cliente
+  atualizar: async (id, cliente) => {
+    const sql = `
+      UPDATE CLIENTE SET 
+        nome = ?, sobrenome = ?, logradouro = ?, bairro = ?, 
+        cidade = ?, uf = ?, email = ?
+      WHERE idCliente = ?`;
+    const values = [
+      cliente.nome,
+      cliente.sobrenome,
+      cliente.logradouro,
+      cliente.bairro,
+      cliente.cidade,
+      cliente.uf,
+      cliente.email,
+      id
+    ];
+    const [resultado] = await db.query(sql, values);
+    return resultado;
+  },
+
+  // Deletar cliente
+  deletar: async (id) => {
+    const [resultado] = await db.query('DELETE FROM CLIENTE WHERE idCliente = ?', [id]);
+    return resultado;
+  }
+};
+
+module.exports = Cliente;
