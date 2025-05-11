@@ -6,6 +6,11 @@ const quartoRoutes = require('./routes/quartoRoutes');
 const tipoQuartoRoutes = require('./routes/tipoQuartoRoutes');
 const hospedagemRoutes = require('./routes/hospedagemRoutes');
 const comodidadeRoutes = require('./routes/comodidadeRoutes');
+const hospedagemQuartoRoutes = require('./routes/hospedagemQuartoRoutes');
+const tipoQuartoComodidadeRoutes = require('./routes/tipoQuartoComodidadeRoutes');
+const funcionarioRoutes = require('./routes/funcionarioRoutes');
+const telefoneRoutes = require('./routes/telefoneRoutes');
+const authRoutes = require('./routes/authRoutes');
 
 // Configurações básicas
 app.use(express.json()); 
@@ -38,3 +43,18 @@ app.use('/api/hospedagens', hospedagemRoutes);
 
 // Rota Comodidades 
 app.use('/api/comodidades', comodidadeRoutes);
+
+// Rota Hospedagem-Quarto 
+app.use('/api/hospedagemquartos', hospedagemQuartoRoutes);
+
+// Rota Tipo Quartos-Comodidades
+app.use('/api/tipoquartoscomodidades', tipoQuartoComodidadeRoutes);
+
+// Rota Funcionários
+app.use('/api/funcionarios', funcionarioRoutes);
+
+// Rota Telefone
+app.use('/api/telefones', telefoneRoutes);
+
+// Rota Autenticação
+app.use('/api/auth', authRoutes);

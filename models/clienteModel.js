@@ -10,14 +10,20 @@ const Cliente = {
   // Buscar um cliente por ID
   buscarPorId: async (id) => {
     const [rows] = await db.query('SELECT * FROM CLIENTE WHERE idCliente = ?', [id]);
-    return rows;
+    return rows[0];
+  },
+
+  // Buscar cliente por email (usado no login)
+  buscarPorEmail: async (email) => {
+    const [rows] = await db.query('SELECT * FROM CLIENTE WHERE email = ?', [email]);
+    return rows[0];
   },
 
   // Criar novo cliente
   criar: async (cliente) => {
     const sql = `
-      INSERT INTO CLIENTE (nome, sobrenome, logradouro, bairro, cidade, uf, email)
-      VALUES (?, ?, ?, ?, ?, ?, ?)`;
+      INSERT INTO CLIENTE (nome, sobrenome, logradouro, bairro, cidade, uf, email, senha)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
     const values = [
       cliente.nome,
       cliente.sobrenome,
@@ -25,7 +31,8 @@ const Cliente = {
       cliente.bairro,
       cliente.cidade,
       cliente.uf,
-      cliente.email
+      cliente.email,
+      cliente.senha
     ];
     const [resultado] = await db.query(sql, values);
     return resultado;
@@ -36,7 +43,7 @@ const Cliente = {
     const sql = `
       UPDATE CLIENTE SET 
         nome = ?, sobrenome = ?, logradouro = ?, bairro = ?, 
-        cidade = ?, uf = ?, email = ?
+        cidade = ?, uf = ?, email = ?, senha = ?
       WHERE idCliente = ?`;
     const values = [
       cliente.nome,
@@ -46,6 +53,7 @@ const Cliente = {
       cliente.cidade,
       cliente.uf,
       cliente.email,
+      cliente.senha,
       id
     ];
     const [resultado] = await db.query(sql, values);

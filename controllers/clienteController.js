@@ -1,4 +1,5 @@
 const Cliente = require('../models/clienteModel');
+const bcrypt = require('bcrypt');
 
 // Listar todos os clientes
 exports.listarClientes = async (req, res) => {
@@ -24,10 +25,14 @@ exports.buscarClientePorId = async (req, res) => {
   }
 };
 
-// Criar novo cliente
+// Criar novo cliente com senha criptografada
 exports.criarCliente = async (req, res) => {
   const novoCliente = req.body;
   try {
+    // Criptografar a senha antes de salvar
+    const senhaCriptografada = await bcrypt.hash(novoCliente.senha, 10);
+    novoCliente.senha = senhaCriptografada;
+
     const resultado = await Cliente.criar(novoCliente);
     res.status(201).json({ mensagem: 'Cliente criado com sucesso', id: resultado.insertId });
   } catch (err) {
