@@ -1,11 +1,21 @@
 const express = require('express');
 const router = express.Router();
 const reservaController = require('../controllers/reservaController');
+const autenticarCliente = require('../middlewares/autenticarToken'); 
 
-router.get('/', reservaController.listar);
-router.get('/:id', reservaController.buscarPorId);
-router.post('/', reservaController.criar);
-router.put('/:id', reservaController.atualizar);
-router.delete('/:id', reservaController.deletar);
+// Listar reservas do cliente logado
+router.get('/', autenticarCliente, reservaController.listar);
+
+// Buscar reserva por ID, mas somente se for do cliente logado
+router.get('/:id', autenticarCliente, reservaController.buscarPorId);
+
+// Criar nova reserva vinculada ao cliente logado
+router.post('/', autenticarCliente, reservaController.criar);
+
+// Atualizar reserva somente se for do cliente logado
+router.put('/:id', autenticarCliente, reservaController.atualizar);
+
+// Deletar reserva somente se for do cliente logado
+router.delete('/:id', autenticarCliente, reservaController.deletar);
 
 module.exports = router;

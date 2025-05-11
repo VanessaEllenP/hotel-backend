@@ -11,6 +11,12 @@ const Reserva = {
     return rows;
   },
 
+  // NOVO: Buscar reservas por cliente
+  getByClienteId: async (clienteId) => {
+    const [rows] = await db.query('SELECT * FROM RESERVA WHERE FK_CLIENTE_idCliente = ?', [clienteId]);
+    return rows;
+  },
+
   create: async (novaReserva) => {
     const sql = `
       INSERT INTO RESERVA 

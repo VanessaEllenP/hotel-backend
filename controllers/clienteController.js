@@ -1,7 +1,7 @@
 const Cliente = require('../models/clienteModel');
 const bcrypt = require('bcrypt');
 
-// Listar todos os clientes
+// Listar todos os clientes (uso interno, proteja com autenticação se necessário)
 exports.listarClientes = async (req, res) => {
   try {
     const resultados = await Cliente.listarTodos();
@@ -11,9 +11,15 @@ exports.listarClientes = async (req, res) => {
   }
 };
 
-// Buscar cliente por ID
+// Buscar cliente por ID (apenas o próprio cliente pode ver)
 exports.buscarClientePorId = async (req, res) => {
-  const id = req.params.id;
+  const id = parseInt(req.params.id);
+  const clienteLogadoId = req.cliente.id;
+
+  if (id !== clienteLogadoId) {
+    return res.status(403).json({ erro: 'Acesso negado aos dados de outro cliente' });
+  }
+
   try {
     const resultado = await Cliente.buscarPorId(id);
     if (resultado.length === 0) {
@@ -25,11 +31,10 @@ exports.buscarClientePorId = async (req, res) => {
   }
 };
 
-// Criar novo cliente com senha criptografada
+// Criar novo cliente com senha criptografada (sem proteção)
 exports.criarCliente = async (req, res) => {
   const novoCliente = req.body;
   try {
-    // Criptografar a senha antes de salvar
     const senhaCriptografada = await bcrypt.hash(novoCliente.senha, 10);
     novoCliente.senha = senhaCriptografada;
 
@@ -40,10 +45,22 @@ exports.criarCliente = async (req, res) => {
   }
 };
 
-// Atualizar cliente
+// Atualizar cliente (somente o próprio cliente pode atualizar)
 exports.atualizarCliente = async (req, res) => {
-  const id = req.params.id;
+  const id = parseInt(req.params.id);
+  const clienteLogadoId = req.cliente.id;
+
+  if (id !== clienteLogadoId) {
+    return res.status(403).json({ erro: 'Você só pode atualizar seus próprios dados' });
+  }
+
   const dadosAtualizados = req.body;
+
+  // Se a senha for alterada, criptografe-a novamente
+  if (dadosAtualizados.senha) {
+    dadosAtualizados.senha = await bcrypt.hash(dadosAtualizados.senha, 10);
+  }
+
   try {
     await Cliente.atualizar(id, dadosAtualizados);
     res.json({ mensagem: 'Cliente atualizado com sucesso' });
@@ -52,9 +69,15 @@ exports.atualizarCliente = async (req, res) => {
   }
 };
 
-// Deletar cliente
+// Deletar cliente (somente o próprio cliente pode deletar)
 exports.deletarCliente = async (req, res) => {
-  const id = req.params.id;
+  const id = parseInt(req.params.id);
+  const clienteLogadoId = req.cliente.id;
+
+  if (id !== clienteLogadoId) {
+    return res.status(403).json({ erro: 'Você só pode deletar sua própria conta' });
+  }
+
   try {
     await Cliente.deletar(id);
     res.json({ mensagem: 'Cliente deletado com sucesso' });
