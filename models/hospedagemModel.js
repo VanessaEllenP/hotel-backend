@@ -1,19 +1,24 @@
 const db = require('../database/connection');
 
 const Hospedagem = {
-  // Listar todas as hospedagens
   listarTodos: async () => {
     const [rows] = await db.query('SELECT * FROM HOSPEDAGEM');
     return rows;
   },
 
-  // Buscar hospedagem por ID
+  listarPorCliente: async (idCliente) => {
+    const [rows] = await db.query(
+      'SELECT * FROM HOSPEDAGEM WHERE FK_CLIENTE_idCliente = ?',
+      [idCliente]
+    );
+    return rows;
+  },
+
   buscarPorId: async (id) => {
     const [rows] = await db.query('SELECT * FROM HOSPEDAGEM WHERE idHospedagem = ?', [id]);
     return rows;
   },
 
-  // Criar nova hospedagem
   criar: async (hospedagem) => {
     const sql = `
       INSERT INTO HOSPEDAGEM (dtEntrada, dtSaida, statusHospedagem, FK_CLIENTE_idCliente, FK_FUNCIONARIO_idFuncionario)
@@ -29,7 +34,6 @@ const Hospedagem = {
     return resultado;
   },
 
-  // Atualizar hospedagem
   atualizar: async (id, hospedagem) => {
     const sql = `
       UPDATE HOSPEDAGEM SET 
@@ -48,7 +52,6 @@ const Hospedagem = {
     return resultado;
   },
 
-  // Deletar hospedagem
   deletar: async (id) => {
     const [resultado] = await db.query('DELETE FROM HOSPEDAGEM WHERE idHospedagem = ?', [id]);
     return resultado;

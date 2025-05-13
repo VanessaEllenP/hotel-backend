@@ -33,14 +33,16 @@ const reservaController = {
   // Criar reserva vinculada ao cliente logado
   criar: async (req, res) => {
     const novaReserva = req.body;
-    novaReserva.Cliente_idCliente = req.cliente.id;
+    novaReserva.FK_CLIENTE_idCliente = req.cliente.id; // <- CORRETO
+  
     try {
       const result = await Reserva.create(novaReserva);
       res.status(201).json({ mensagem: 'Reserva cadastrada com sucesso!', id: result.insertId });
     } catch (err) {
+      console.error(err);
       res.status(500).json({ erro: 'Erro ao cadastrar reserva.' });
     }
-  },
+  },  
 
   // Atualizar somente se for do cliente logado
   atualizar: async (req, res) => {
