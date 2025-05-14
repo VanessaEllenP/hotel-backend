@@ -34,9 +34,9 @@ const reservaController = {
   criar: async (req, res) => {
     const novaReserva = req.body;
     novaReserva.FK_CLIENTE_idCliente = req.cliente.id; // <- CORRETO
-  
+    
     try {
-      const result = await Reserva.create(novaReserva);
+      const result = await Reserva.create(novaReserva); // O valor total será calculado no modelo
       res.status(201).json({ mensagem: 'Reserva cadastrada com sucesso!', id: result.insertId });
     } catch (err) {
       console.error(err);
@@ -59,7 +59,7 @@ const reservaController = {
         return res.status(403).json({ mensagem: 'Você não tem permissão para atualizar esta reserva.' });
       }
 
-      await Reserva.update(id, dados);
+      await Reserva.update(id, dados); // O valor total será recalculado no modelo
       res.json({ mensagem: 'Reserva atualizada com sucesso!' });
     } catch (err) {
       res.status(500).json({ erro: 'Erro ao atualizar reserva.' });

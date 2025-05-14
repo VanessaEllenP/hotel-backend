@@ -18,27 +18,44 @@ const Reserva = {
   },
 
   create: async (novaReserva) => {
+    // Calcular o valor total usando a função SimularValorReserva
+    const [resultado] = await db.query(`
+      SELECT SimularValorReserva(?, ?, ?) AS valorTotal
+    `, [novaReserva.FK_TIPOQUARTO_idTipoQuarto, novaReserva.dtInicial, novaReserva.dtFinal]);
+
+    const valorTotal = resultado.valorTotal;
+
+    // Inserir a nova reserva com o valor total calculado
     const sql = `
       INSERT INTO RESERVA 
-        (dtInicial, dtFinal, statusReserva, FK_CLIENTE_idCliente, FK_TIPOQUARTO_idTipoQuarto) 
-      VALUES (?, ?, ?, ?, ?)
+        (dtInicial, dtFinal, statusReserva, FK_CLIENTE_idCliente, FK_TIPOQUARTO_idTipoQuarto, valorTotal) 
+      VALUES (?, ?, ?, ?, ?, ?)
     `;
     const values = [
       novaReserva.dtInicial,
       novaReserva.dtFinal,
       novaReserva.statusReserva || 'PENDENTE',
       novaReserva.FK_CLIENTE_idCliente,
-      novaReserva.FK_TIPOQUARTO_idTipoQuarto
+      novaReserva.FK_TIPOQUARTO_idTipoQuarto,
+      valorTotal
     ];
     const [result] = await db.query(sql, values);
     return result;
   },
 
   update: async (id, reservaAtualizada) => {
+    // Calcular o valor total usando a função SimularValorReserva
+    const [resultado] = await db.query(`
+      SELECT SimularValorReserva(?, ?, ?) AS valorTotal
+    `, [reservaAtualizada.FK_TIPOQUARTO_idTipoQuarto, reservaAtualizada.dtInicial, reservaAtualizada.dtFinal]);
+
+    const valorTotal = resultado.valorTotal;
+
+    // Atualizar a reserva com o valor total calculado
     const sql = `
       UPDATE RESERVA 
       SET dtInicial = ?, dtFinal = ?, statusReserva = ?, 
-          FK_CLIENTE_idCliente = ?, FK_TIPOQUARTO_idTipoQuarto = ? 
+          FK_CLIENTE_idCliente = ?, FK_TIPOQUARTO_idTipoQuarto = ?, valorTotal = ? 
       WHERE idReserva = ?
     `;
     const values = [
@@ -47,6 +64,7 @@ const Reserva = {
       reservaAtualizada.statusReserva,
       reservaAtualizada.FK_CLIENTE_idCliente,
       reservaAtualizada.FK_TIPOQUARTO_idTipoQuarto,
+      valorTotal,
       id
     ];
     const [result] = await db.query(sql, values);
