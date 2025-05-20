@@ -1,4 +1,5 @@
 const Reserva = require('../models/reservaModel');
+const Hospedagem = require('../models/hospedagemModel');
 
 const reservaController = {
   // Listar reservas do cliente logado
@@ -84,6 +85,47 @@ const reservaController = {
       res.json({ mensagem: 'Reserva excluída com sucesso!' });
     } catch (err) {
       res.status(500).json({ erro: 'Erro ao excluir reserva.' });
+    }
+  },
+
+  // Confirmar reserva e criar hospedagem automaticamente
+  confirmarEIniciarHospedagem: async (req, res) => {
+    const idReserva = req.params.id;
+    const clienteId = req.cliente.id;
+    const { valorExtra, FK_FUNCIONARIO_idFuncionario } = req.body; // opcional, adapte conforme seu modelo
+
+    try {
+      // 1. Verifica se a reserva existe e pertence ao cliente
+      const reserva = await Reserva.getById(idReserva);
+      if (reserva.length === 0) {
+        return res.status(404).json({ mensagem: 'Reserva não encontrada.' });
+      }
+      if (reserva[0].FK_CLIENTE_idCliente !== clienteId) {
+        return res.status(403).json({ mensagem: 'Você não tem permissão para confirmar esta reserva.' });
+      }
+
+      // 2. Atualiza o status da reserva para 'confirmada'
+      await Reserva.updateStatus(idReserva, 'confirmada');
+
+      // 3. Cria a hospedagem vinculada à reserva
+      const novaHospedagem = {
+        statusHospedagem: 'ATIVA',
+        valorExtra: valorExtra || 0,
+        FK_CLIENTE_idCliente: clienteId,
+        FK_FUNCIONARIO_idFuncionario: FK_FUNCIONARIO_idFuncionario || null,
+        FK_RESERVA_idReserva: idReserva
+      };
+
+      const resultadoHospedagem = await Hospedagem.create(novaHospedagem);
+
+      res.status(201).json({
+        mensagem: 'Reserva confirmada e hospedagem criada com sucesso!',
+        idHospedagem: resultadoHospedagem.insertId
+      });
+
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ erro: 'Erro ao confirmar reserva e criar hospedagem.' });
     }
   }
 };

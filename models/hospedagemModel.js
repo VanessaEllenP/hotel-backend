@@ -1,7 +1,7 @@
 const db = require('../database/connection');
 
 const Hospedagem = {
-  // Listar todas as hospedagens com dados da reserva e cliente
+  // Listar todas as hospedagens com dados da reserva, cliente e quarto (se houver)
   listarTodos: async () => {
     const [rows] = await db.query(`
       SELECT 
@@ -15,15 +15,20 @@ const Hospedagem = {
         r.dtFinal AS dtSaida,
         r.valorTotal,
         (r.valorTotal + h.valorExtra) AS valorFinalHospedagem,
-        c.nome AS nomeCliente
+        c.nome AS nomeCliente,
+        q.nomeQuarto,
+        tq.descricao AS tipoQuarto
       FROM HOSPEDAGEM h
       INNER JOIN RESERVA r ON h.FK_RESERVA_idReserva = r.idReserva
       INNER JOIN CLIENTE c ON h.FK_CLIENTE_idCliente = c.idCliente
+      LEFT JOIN HOSPEDAGEM_QUARTO hq ON hq.FK_HOSPEDAGEM_idHospedagem = h.idHospedagem
+      LEFT JOIN QUARTO q ON q.idQuarto = hq.FK_QUARTO_idQuarto
+      LEFT JOIN TIPOQUARTO tq ON tq.idTipoQuarto = q.FK_TIPOQUARTO_idTipoQuarto
     `);
     return rows;
   },
 
-  // Listar hospedagens por cliente (trazendo só um quarto por hospedagem)
+  // Listar hospedagens por cliente (trazendo nome e tipo do quarto, se houver)
   listarPorCliente: async (idCliente) => {
     const [rows] = await db.query(`
       SELECT 
@@ -37,26 +42,19 @@ const Hospedagem = {
         r.dtFinal AS dtSaida,
         r.valorTotal,
         (r.valorTotal + h.valorExtra) AS valorFinalHospedagem,
-        quartoInfo.numeroQuarto,
-        quartoInfo.tipoQuarto
+        q.nomeQuarto,
+        tq.descricao AS tipoQuarto
       FROM HOSPEDAGEM h
       INNER JOIN RESERVA r ON h.FK_RESERVA_idReserva = r.idReserva
-      LEFT JOIN (
-        SELECT 
-          hq.FK_HOSPEDAGEM_idHospedagem, 
-          MAX(q.nomeQuarto) AS numeroQuarto, 
-          MAX(tq.descricao) AS tipoQuarto
-        FROM HOSPEDAGEM_QUARTO hq
-        INNER JOIN QUARTO q ON q.idQuarto = hq.FK_QUARTO_idQuarto
-        INNER JOIN TIPOQUARTO tq ON tq.idTipoQuarto = q.FK_TIPOQUARTO_idTipoQuarto
-        GROUP BY hq.FK_HOSPEDAGEM_idHospedagem
-      ) AS quartoInfo ON quartoInfo.FK_HOSPEDAGEM_idHospedagem = h.idHospedagem
+      LEFT JOIN HOSPEDAGEM_QUARTO hq ON hq.FK_HOSPEDAGEM_idHospedagem = h.idHospedagem
+      LEFT JOIN QUARTO q ON q.idQuarto = hq.FK_QUARTO_idQuarto
+      LEFT JOIN TIPOQUARTO tq ON tq.idTipoQuarto = q.FK_TIPOQUARTO_idTipoQuarto
       WHERE h.FK_CLIENTE_idCliente = ?
     `, [idCliente]);
     return rows;
   },
 
-  // Buscar hospedagem por ID (trazendo só um quarto)
+  // Buscar hospedagem por ID (com quarto e tipo, se houver)
   buscarPorId: async (id) => {
     const [rows] = await db.query(`
       SELECT 
@@ -70,26 +68,19 @@ const Hospedagem = {
         r.dtFinal AS dtSaida,
         r.valorTotal,
         (r.valorTotal + h.valorExtra) AS valorFinalHospedagem,
-        quartoInfo.numeroQuarto,
-        quartoInfo.tipoQuarto
+        q.nomeQuarto,
+        tq.descricao AS tipoQuarto
       FROM HOSPEDAGEM h
       INNER JOIN RESERVA r ON h.FK_RESERVA_idReserva = r.idReserva
-      LEFT JOIN (
-        SELECT 
-          hq.FK_HOSPEDAGEM_idHospedagem, 
-          MAX(q.nomeQuarto) AS numeroQuarto, 
-          MAX(tq.descricao) AS tipoQuarto
-        FROM HOSPEDAGEM_QUARTO hq
-        INNER JOIN QUARTO q ON q.idQuarto = hq.FK_QUARTO_idQuarto
-        INNER JOIN TIPOQUARTO tq ON tq.idTipoQuarto = q.FK_TIPOQUARTO_idTipoQuarto
-        GROUP BY hq.FK_HOSPEDAGEM_idHospedagem
-      ) AS quartoInfo ON quartoInfo.FK_HOSPEDAGEM_idHospedagem = h.idHospedagem
+      LEFT JOIN HOSPEDAGEM_QUARTO hq ON hq.FK_HOSPEDAGEM_idHospedagem = h.idHospedagem
+      LEFT JOIN QUARTO q ON q.idQuarto = hq.FK_QUARTO_idQuarto
+      LEFT JOIN TIPOQUARTO tq ON tq.idTipoQuarto = q.FK_TIPOQUARTO_idTipoQuarto
       WHERE h.idHospedagem = ?
     `, [id]);
-    return rows;
+    return rows;  // retorna array para permitir múltiplos quartos vinculados
   },
 
-  // Criar nova hospedagem
+  // Criar nova hospedagem (só cria na tabela HOSPEDAGEM)
   criar: async (hospedagem) => {
     const sql = `
       INSERT INTO HOSPEDAGEM (statusHospedagem, valorExtra, FK_CLIENTE_idCliente, FK_FUNCIONARIO_idFuncionario, FK_RESERVA_idReserva)
@@ -130,6 +121,27 @@ const Hospedagem = {
   // Deletar hospedagem
   deletar: async (id) => {
     const [resultado] = await db.query('DELETE FROM HOSPEDAGEM WHERE idHospedagem = ?', [id]);
+    return resultado;
+  },
+
+  // Adicionar quartos vinculados a uma hospedagem
+  adicionarQuartos: async (idHospedagem, quartos) => {
+    if (!Array.isArray(quartos) || quartos.length === 0) return;
+
+    // Monta array para inserção múltipla
+    const values = quartos.map(idQuarto => [idHospedagem, idQuarto]);
+
+    const sql = 'INSERT INTO HOSPEDAGEM_QUARTO (FK_HOSPEDAGEM_idHospedagem, FK_QUARTO_idQuarto) VALUES ?';
+
+    const [resultado] = await db.query(sql, [values]);
+    return resultado;
+  },
+
+  // Remover quartos vinculados a uma hospedagem
+  removerQuartos: async (idHospedagem) => {
+    const sql = 'DELETE FROM HOSPEDAGEM_QUARTO WHERE FK_HOSPEDAGEM_idHospedagem = ?';
+
+    const [resultado] = await db.query(sql, [idHospedagem]);
     return resultado;
   }
 };

@@ -39,3 +39,25 @@ exports.buscarQuartosPorHospedagem = async (req, res) => {
     res.status(500).json({ erro: 'Erro ao buscar quartos da hospedagem' });
   }
 };
+
+// Associar múltiplos quartos a uma hospedagem
+exports.associarMultiplosQuartos = async (req, res) => {
+  const { idHospedagem, quartos } = req.body;
+
+  if (!idHospedagem || !Array.isArray(quartos) || quartos.length === 0) {
+    return res.status(400).json({ erro: 'Dados inválidos. Envie idHospedagem e um array de quartos.' });
+  }
+
+  try {
+    for (const idQuarto of quartos) {
+      await HospedagemQuarto.criar({
+        FK_HOSPEDAGEM_idHospedagem: idHospedagem,
+        FK_QUARTO_idQuarto: idQuarto,
+      });
+    }
+    res.status(201).json({ mensagem: 'Múltiplos quartos associados à hospedagem com sucesso!' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ erro: 'Erro ao associar múltiplos quartos' });
+  }
+};

@@ -1,19 +1,18 @@
 const db = require('../database/connection');
 
 const HospedagemQuarto = {
-    listarTodos: async () => {
-        const [rows] = await db.query(`
-          SELECT 
-            HQ.FK_HOSPEDAGEM_idHospedagem AS idHospedagem,
-            HQ.FK_QUARTO_idQuarto AS idQuarto,
-            Q.nomeQuarto,
-            TQ.descricao AS tipoQuarto
-          FROM HOSPEDAGEM_QUARTO HQ
-          JOIN QUARTO Q ON HQ.FK_QUARTO_idQuarto = Q.idQuarto
-          JOIN TIPOQUARTO TQ ON Q.FK_TIPOQUARTO_idTipoQuarto = TQ.idTipoQuarto
-        `);
-        return rows;
-      
+  listarTodos: async () => {
+    const [rows] = await db.query(`
+      SELECT 
+        HQ.FK_HOSPEDAGEM_idHospedagem AS idHospedagem,
+        HQ.FK_QUARTO_idQuarto AS idQuarto,
+        Q.nomeQuarto,
+        TQ.descricao AS tipoQuarto
+      FROM HOSPEDAGEM_QUARTO HQ
+      JOIN QUARTO Q ON HQ.FK_QUARTO_idQuarto = Q.idQuarto
+      JOIN TIPOQUARTO TQ ON Q.FK_TIPOQUARTO_idTipoQuarto = TQ.idTipoQuarto
+    `);
+    return rows;
   },
 
   criar: async (dados) => {
@@ -22,6 +21,15 @@ const HospedagemQuarto = {
       VALUES (?, ?)`;
     const values = [dados.FK_HOSPEDAGEM_idHospedagem, dados.FK_QUARTO_idQuarto];
     const [resultado] = await db.query(sql, values);
+    return resultado;
+  },
+
+  associarMultiplosQuartos: async (idHospedagem, listaIdQuartos) => {
+    const values = listaIdQuartos.map(idQuarto => [idHospedagem, idQuarto]);
+    const sql = `
+      INSERT INTO HOSPEDAGEM_QUARTO (FK_HOSPEDAGEM_idHospedagem, FK_QUARTO_idQuarto)
+      VALUES ?`;
+    const [resultado] = await db.query(sql, [values]);
     return resultado;
   },
 
@@ -35,9 +43,13 @@ const HospedagemQuarto = {
 
   buscarPorHospedagem: async (idHospedagem) => {
     const [rows] = await db.query(`
-      SELECT Q.*
+      SELECT 
+        Q.idQuarto,
+        Q.nomeQuarto,
+        TQ.descricao AS tipoQuarto
       FROM HOSPEDAGEM_QUARTO HQ
       JOIN QUARTO Q ON HQ.FK_QUARTO_idQuarto = Q.idQuarto
+      JOIN TIPOQUARTO TQ ON Q.FK_TIPOQUARTO_idTipoQuarto = TQ.idTipoQuarto
       WHERE HQ.FK_HOSPEDAGEM_idHospedagem = ?
     `, [idHospedagem]);
     return rows;

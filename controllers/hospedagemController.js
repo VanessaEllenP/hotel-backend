@@ -1,56 +1,81 @@
 const Hospedagem = require('../models/hospedagemModel');
 
-// Listar hospedagens do cliente logado
+// Listar hospedagens do cliente logado, agrupando quartos
 exports.listarHospedagens = async (req, res) => {
   const idCliente = req.cliente.id;
 
   try {
     const resultados = await Hospedagem.listarPorCliente(idCliente);
 
-    // Cada hospedagem traz no máximo 1 quarto, então converte para array com 1 elemento ou vazio
-    const hospedagensFormatadas = resultados.map(h => ({
-      idHospedagem: h.idHospedagem,
-      statusHospedagem: h.statusHospedagem,
-      dtEntrada: h.dtEntrada,
-      dtSaida: h.dtSaida,
-      valorReserva: h.valorTotal || 0,
-      valorExtra: h.valorExtra || 0,
-      valorFinal: h.valorFinalHospedagem || 0,
-      quartos: h.numeroQuarto ? [{ numeroQuarto: h.numeroQuarto, tipoQuarto: h.tipoQuarto }] : []
-    }));
+    const hospedagensMap = new Map();
 
+    resultados.forEach(row => {
+      const id = row.idHospedagem;
+
+      if (!hospedagensMap.has(id)) {
+        hospedagensMap.set(id, {
+          idHospedagem: row.idHospedagem,
+          statusHospedagem: row.statusHospedagem,
+          dtEntrada: row.dtEntrada,
+          dtSaida: row.dtSaida,
+          valorReserva: row.valorTotal || 0,
+          valorExtra: row.valorExtra || 0,
+          valorFinal: row.valorFinalHospedagem || 0,
+          quartos: []
+        });
+      }
+
+      if (row.nomeQuarto) {
+        hospedagensMap.get(id).quartos.push({
+          nomeQuarto: row.nomeQuarto,
+          tipoQuarto: row.tipoQuarto
+        });
+      }
+    });
+
+    const hospedagensFormatadas = Array.from(hospedagensMap.values());
     res.json(hospedagensFormatadas);
+
   } catch (err) {
     console.error(err);
     res.status(500).json({ erro: 'Erro ao listar hospedagens' });
   }
 };
 
-// Buscar hospedagem por ID (só se for do cliente logado)
+// Buscar hospedagem por ID, agrupando quartos
 exports.buscarHospedagemPorId = async (req, res) => {
   const id = req.params.id;
   const idCliente = req.cliente.id;
 
   try {
-    const resultado = await Hospedagem.buscarPorId(id);
-    const hospedagem = resultado[0];
+    const resultados = await Hospedagem.buscarPorId(id);
 
-    if (!hospedagem || hospedagem.FK_CLIENTE_idCliente !== idCliente) {
+    if (!resultados || resultados.length === 0 || resultados[0].FK_CLIENTE_idCliente !== idCliente) {
       return res.status(403).json({ mensagem: 'Acesso não autorizado' });
     }
 
-    const hospedagemFormatada = {
-      idHospedagem: hospedagem.idHospedagem,
-      statusHospedagem: hospedagem.statusHospedagem,
-      dtEntrada: hospedagem.dtEntrada,
-      dtSaida: hospedagem.dtSaida,
-      valorReserva: hospedagem.valorTotal || 0,
-      valorExtra: hospedagem.valorExtra || 0,
-      valorFinal: hospedagem.valorFinalHospedagem || 0,
-      quartos: hospedagem.numeroQuarto ? [{ numeroQuarto: hospedagem.numeroQuarto, tipoQuarto: hospedagem.tipoQuarto }] : []
+    const hospedagem = {
+      idHospedagem: resultados[0].idHospedagem,
+      statusHospedagem: resultados[0].statusHospedagem,
+      dtEntrada: resultados[0].dtEntrada,
+      dtSaida: resultados[0].dtSaida,
+      valorReserva: resultados[0].valorTotal || 0,
+      valorExtra: resultados[0].valorExtra || 0,
+      valorFinal: resultados[0].valorFinalHospedagem || 0,
+      quartos: []
     };
 
-    res.json(hospedagemFormatada);
+    resultados.forEach(row => {
+      if (row.nomeQuarto) {
+        hospedagem.quartos.push({
+          nomeQuarto: row.nomeQuarto,
+          tipoQuarto: row.tipoQuarto
+        });
+      }
+    });
+
+    res.json(hospedagem);
+
   } catch (err) {
     console.error(err);
     res.status(500).json({ erro: 'Erro ao buscar hospedagem' });
@@ -59,7 +84,7 @@ exports.buscarHospedagemPorId = async (req, res) => {
 
 // Criar nova hospedagem vinculada ao cliente logado
 exports.criarHospedagem = async (req, res) => {
-  const { FK_FUNCIONARIO_idFuncionario, FK_RESERVA_idReserva, valorExtra, statusHospedagem } = req.body;
+  const { FK_FUNCIONARIO_idFuncionario, FK_RESERVA_idReserva, valorExtra, statusHospedagem, quartos } = req.body;
 
   if (!FK_FUNCIONARIO_idFuncionario || !FK_RESERVA_idReserva) {
     return res.status(400).json({ erro: 'Funcionário e reserva são obrigatórios' });
@@ -75,7 +100,13 @@ exports.criarHospedagem = async (req, res) => {
 
   try {
     const resultado = await Hospedagem.criar(novaHospedagem);
-    res.status(201).json({ mensagem: 'Hospedagem criada com sucesso', id: resultado.insertId });
+    const idHospedagem = resultado.insertId;
+
+    if (Array.isArray(quartos) && quartos.length > 0) {
+      await Hospedagem.adicionarQuartos(idHospedagem, quartos);
+    }
+
+    res.status(201).json({ mensagem: 'Hospedagem criada com sucesso', id: idHospedagem });
   } catch (err) {
     console.error(err);
     res.status(500).json({ erro: 'Erro ao criar hospedagem' });
@@ -86,7 +117,7 @@ exports.criarHospedagem = async (req, res) => {
 exports.atualizarHospedagem = async (req, res) => {
   const id = req.params.id;
   const idCliente = req.cliente.id;
-  const dadosAtualizados = req.body;
+  const { quartos, ...dadosAtualizados } = req.body;
 
   try {
     const resultado = await Hospedagem.buscarPorId(id);
@@ -94,10 +125,17 @@ exports.atualizarHospedagem = async (req, res) => {
       return res.status(403).json({ mensagem: 'Acesso não autorizado' });
     }
 
-    // Garante que o cliente não será trocado
     dadosAtualizados.FK_CLIENTE_idCliente = idCliente;
 
     await Hospedagem.atualizar(id, dadosAtualizados);
+
+    if (Array.isArray(quartos)) {
+      await Hospedagem.removerQuartos(id);
+      if (quartos.length > 0) {
+        await Hospedagem.adicionarQuartos(id, quartos);
+      }
+    }
+
     res.json({ mensagem: 'Hospedagem atualizada com sucesso' });
   } catch (err) {
     console.error(err);
@@ -116,7 +154,9 @@ exports.deletarHospedagem = async (req, res) => {
       return res.status(403).json({ mensagem: 'Acesso não autorizado' });
     }
 
+    await Hospedagem.removerQuartos(id);
     await Hospedagem.deletar(id);
+
     res.json({ mensagem: 'Hospedagem deletada com sucesso' });
   } catch (err) {
     console.error(err);

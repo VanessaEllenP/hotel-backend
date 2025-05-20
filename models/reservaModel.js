@@ -11,7 +11,7 @@ const Reserva = {
     return rows;
   },
 
-  // NOVO: Buscar reservas por cliente
+  // Buscar reservas por cliente
   getByClienteId: async (clienteId) => {
     const [rows] = await db.query('SELECT * FROM RESERVA WHERE FK_CLIENTE_idCliente = ?', [clienteId]);
     return rows;
@@ -23,7 +23,7 @@ const Reserva = {
       SELECT SimularValorReserva(?, ?, ?) AS valorTotal
     `, [novaReserva.FK_TIPOQUARTO_idTipoQuarto, novaReserva.dtInicial, novaReserva.dtFinal]);
 
-    const valorTotal = resultado.valorTotal;
+    const valorTotal = resultado[0].valorTotal;
 
     // Inserir a nova reserva com o valor total calculado
     const sql = `
@@ -49,7 +49,7 @@ const Reserva = {
       SELECT SimularValorReserva(?, ?, ?) AS valorTotal
     `, [reservaAtualizada.FK_TIPOQUARTO_idTipoQuarto, reservaAtualizada.dtInicial, reservaAtualizada.dtFinal]);
 
-    const valorTotal = resultado.valorTotal;
+    const valorTotal = resultado[0].valorTotal;
 
     // Atualizar a reserva com o valor total calculado
     const sql = `
@@ -70,6 +70,19 @@ const Reserva = {
     const [result] = await db.query(sql, values);
     return result;
   },
+
+  updateStatus: async (idReserva, status, idCliente) => {
+    // Atualiza o status apenas se a reserva pertencer ao cliente
+    const sql = `
+      UPDATE RESERVA 
+      SET statusReserva = ?
+      WHERE idReserva = ? AND FK_CLIENTE_idCliente = ?
+    `;
+    const [result] = await db.query(sql, [status, idReserva, idCliente]);
+
+    // Retorna true se alguma linha foi atualizada, false caso contrário
+    return result.affectedRows > 0;
+  },  
 
   delete: async (id) => {
     const [result] = await db.query('DELETE FROM RESERVA WHERE idReserva = ?', [id]);
