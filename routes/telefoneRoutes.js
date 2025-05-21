@@ -5,16 +5,13 @@ const telefoneController = require('../controllers/telefoneController');
 // Listar todos os telefones
 router.get('/', telefoneController.listar);
 
-// Buscar telefone por ID
-router.get('/:id', telefoneController.buscarPorId);
+// Buscar telefones por ID do cliente
+router.get('/cliente/:idCliente', telefoneController.buscarPorCliente);
 
-// Criar novo telefone
+// Criar um ou mais telefones para um cliente
 router.post('/', telefoneController.criar);
 
-// Atualizar telefone existente
-router.put('/:id', telefoneController.atualizar);
-
-// Deletar telefone
-router.delete('/:id', telefoneController.deletar);
+// Deletar todos os telefones de um cliente
+router.delete('/cliente/:idCliente', telefoneController.deletarPorCliente);
 
 module.exports = router;

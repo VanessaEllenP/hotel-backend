@@ -22,36 +22,38 @@ const Cliente = {
   // Criar novo cliente
   criar: async (cliente) => {
     const sql = `
-      INSERT INTO CLIENTE (nome, sobrenome, logradouro, bairro, cidade, uf, email, senha)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
+      INSERT INTO CLIENTE (nome, sobrenome, dataNascimento, logradouro, bairro, cidade, uf, email, senha)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`;
     const values = [
       cliente.nome,
       cliente.sobrenome,
-      cliente.logradouro,
-      cliente.bairro,
-      cliente.cidade,
-      cliente.uf,
+      cliente.dataNascimento,
+      cliente.logradouro || null,
+      cliente.bairro || null,
+      cliente.cidade || null,
+      cliente.uf || null,
       cliente.email,
       cliente.senha
     ];
     const [resultado] = await db.query(sql, values);
-    return resultado;
+    return resultado.insertId;  // <-- Retorna só o id inserido
   },
 
   // Atualizar cliente
   atualizar: async (id, cliente) => {
     const sql = `
       UPDATE CLIENTE SET 
-        nome = ?, sobrenome = ?, logradouro = ?, bairro = ?, 
+        nome = ?, sobrenome = ?, dataNascimento = ?, logradouro = ?, bairro = ?, 
         cidade = ?, uf = ?, email = ?, senha = ?
       WHERE idCliente = ?`;
     const values = [
       cliente.nome,
       cliente.sobrenome,
-      cliente.logradouro,
-      cliente.bairro,
-      cliente.cidade,
-      cliente.uf,
+      cliente.dataNascimento,
+      cliente.logradouro || null,
+      cliente.bairro || null,
+      cliente.cidade || null,
+      cliente.uf || null,
       cliente.email,
       cliente.senha,
       id

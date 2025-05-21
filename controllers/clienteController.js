@@ -1,4 +1,5 @@
 const Cliente = require('../models/clienteModel');
+const Telefone = require('../models/telefoneModel');
 const bcrypt = require('bcrypt');
 
 // Listar todos os clientes (uso interno, proteja com autenticação se necessário)
@@ -22,10 +23,10 @@ exports.buscarClientePorId = async (req, res) => {
 
   try {
     const resultado = await Cliente.buscarPorId(id);
-    if (resultado.length === 0) {
+    if (!resultado) {
       return res.status(404).json({ mensagem: 'Cliente não encontrado' });
     }
-    res.json(resultado[0]);
+    res.json(resultado);
   } catch (err) {
     res.status(500).json({ erro: 'Erro ao buscar cliente' });
   }
@@ -34,13 +35,27 @@ exports.buscarClientePorId = async (req, res) => {
 // Criar novo cliente com senha criptografada (sem proteção)
 exports.criarCliente = async (req, res) => {
   const novoCliente = req.body;
+
+  if (!novoCliente.dataNascimento) {
+    return res.status(400).json({ erro: 'Data de nascimento é obrigatória' });
+  }
+
   try {
+    // Criptografa a senha
     const senhaCriptografada = await bcrypt.hash(novoCliente.senha, 10);
     novoCliente.senha = senhaCriptografada;
 
-    const resultado = await Cliente.criar(novoCliente);
-    res.status(201).json({ mensagem: 'Cliente criado com sucesso', id: resultado.insertId });
+    // Cria cliente e pega o insertId direto do model (alteração aqui)
+    const idCliente = await Cliente.criar(novoCliente);
+
+    // Se vier lista de telefones no corpo, cria os telefones
+    if (novoCliente.telefones && Array.isArray(novoCliente.telefones) && novoCliente.telefones.length > 0) {
+      await Telefone.criarTelefones(novoCliente.telefones, idCliente);
+    }
+
+    res.status(201).json({ mensagem: 'Cliente criado com sucesso', id: idCliente });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ erro: 'Erro ao criar cliente' });
   }
 };
@@ -56,15 +71,32 @@ exports.atualizarCliente = async (req, res) => {
 
   const dadosAtualizados = req.body;
 
+  if (!dadosAtualizados.dataNascimento) {
+    return res.status(400).json({ erro: 'Data de nascimento é obrigatória' });
+  }
+
   // Se a senha for alterada, criptografe-a novamente
   if (dadosAtualizados.senha) {
     dadosAtualizados.senha = await bcrypt.hash(dadosAtualizados.senha, 10);
   }
 
   try {
+    // Atualiza dados do cliente
     await Cliente.atualizar(id, dadosAtualizados);
-    res.json({ mensagem: 'Cliente atualizado com sucesso' });
+
+    // Atualiza telefones, se enviados
+    if (dadosAtualizados.telefones && Array.isArray(dadosAtualizados.telefones)) {
+      // Apaga telefones antigos
+      await Telefone.deletarPorCliente(id);
+      // Insere os novos, se houver
+      if (dadosAtualizados.telefones.length > 0) {
+        await Telefone.criarTelefones(dadosAtualizados.telefones, id);
+      }
+    }
+
+    res.json({ mensagem: 'Cliente e telefones atualizados com sucesso' });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ erro: 'Erro ao atualizar cliente' });
   }
 };

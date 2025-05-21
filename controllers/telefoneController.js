@@ -1,5 +1,6 @@
 const Telefone = require('../models/telefoneModel');
 
+// Listar todos os telefones
 exports.listar = async (req, res) => {
   try {
     const telefones = await Telefone.listarTodos();
@@ -9,46 +10,40 @@ exports.listar = async (req, res) => {
   }
 };
 
-exports.buscarPorId = async (req, res) => {
-  const { id } = req.params;
+// Buscar telefones por cliente (mais apropriado com sua modelagem)
+exports.buscarPorCliente = async (req, res) => {
+  const idCliente = parseInt(req.params.idCliente);
   try {
-    const telefone = await Telefone.buscarPorId(id);
-    if (!telefone) {
-      return res.status(404).json({ erro: 'Telefone não encontrado' });
-    }
-    res.json(telefone);
+    const telefones = await Telefone.buscarPorClienteId(idCliente);
+    res.json(telefones);
   } catch (err) {
-    res.status(500).json({ erro: 'Erro ao buscar telefone' });
+    res.status(500).json({ erro: 'Erro ao buscar telefones do cliente' });
   }
 };
 
+// Criar um ou mais telefones para um cliente
 exports.criar = async (req, res) => {
-  const dados = req.body;
+  const { idCliente, telefones } = req.body;
+
+  if (!idCliente || !Array.isArray(telefones)) {
+    return res.status(400).json({ erro: 'Informe o idCliente e a lista de telefones' });
+  }
+
   try {
-    const id = await Telefone.criar(dados);
-    res.status(201).json({ mensagem: 'Telefone cadastrado com sucesso!', id });
+    await Telefone.criarTelefones(telefones, idCliente);
+    res.status(201).json({ mensagem: 'Telefones cadastrados com sucesso!' });
   } catch (err) {
-    res.status(500).json({ erro: 'Erro ao criar telefone' });
+    res.status(500).json({ erro: 'Erro ao cadastrar telefones' });
   }
 };
 
-exports.atualizar = async (req, res) => {
-  const { id } = req.params;
-  const dados = req.body;
+// Deletar todos os telefones de um cliente
+exports.deletarPorCliente = async (req, res) => {
+  const idCliente = parseInt(req.params.idCliente);
   try {
-    await Telefone.atualizar(id, dados);
-    res.json({ mensagem: 'Telefone atualizado com sucesso!' });
+    await Telefone.deletarPorCliente(idCliente);
+    res.json({ mensagem: 'Telefones deletados com sucesso!' });
   } catch (err) {
-    res.status(500).json({ erro: 'Erro ao atualizar telefone' });
-  }
-};
-
-exports.deletar = async (req, res) => {
-  const { id } = req.params;
-  try {
-    await Telefone.deletar(id);
-    res.json({ mensagem: 'Telefone deletado com sucesso!' });
-  } catch (err) {
-    res.status(500).json({ erro: 'Erro ao deletar telefone' });
+    res.status(500).json({ erro: 'Erro ao deletar telefones' });
   }
 };
