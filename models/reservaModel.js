@@ -25,15 +25,16 @@ const Reserva = {
 
     const valorTotal = resultado[0].valorTotal;
 
-    // Inserir a nova reserva com o valor total calculado
+    // Inserir a nova reserva com o valor total calculado e quantidade de pessoas
     const sql = `
       INSERT INTO RESERVA 
-        (dtInicial, dtFinal, statusReserva, FK_CLIENTE_idCliente, FK_TIPOQUARTO_idTipoQuarto, valorTotal) 
-      VALUES (?, ?, ?, ?, ?, ?)
+        (dtInicial, dtFinal, qntPessoas, statusReserva, FK_CLIENTE_idCliente, FK_TIPOQUARTO_idTipoQuarto, valorTotal) 
+      VALUES (?, ?, ?, ?, ?, ?, ?)
     `;
     const values = [
       novaReserva.dtInicial,
       novaReserva.dtFinal,
+      novaReserva.qntPessoas || 1,  // valor padrão 1 se não informado
       novaReserva.statusReserva || 'PENDENTE',
       novaReserva.FK_CLIENTE_idCliente,
       novaReserva.FK_TIPOQUARTO_idTipoQuarto,
@@ -51,16 +52,17 @@ const Reserva = {
 
     const valorTotal = resultado[0].valorTotal;
 
-    // Atualizar a reserva com o valor total calculado
+    // Atualizar a reserva com o valor total calculado e quantidade de pessoas
     const sql = `
       UPDATE RESERVA 
-      SET dtInicial = ?, dtFinal = ?, statusReserva = ?, 
+      SET dtInicial = ?, dtFinal = ?, qntPessoas = ?, statusReserva = ?, 
           FK_CLIENTE_idCliente = ?, FK_TIPOQUARTO_idTipoQuarto = ?, valorTotal = ? 
       WHERE idReserva = ?
     `;
     const values = [
       reservaAtualizada.dtInicial,
       reservaAtualizada.dtFinal,
+      reservaAtualizada.qntPessoas || 1,  // padrão 1 se não informar
       reservaAtualizada.statusReserva,
       reservaAtualizada.FK_CLIENTE_idCliente,
       reservaAtualizada.FK_TIPOQUARTO_idTipoQuarto,
@@ -80,14 +82,22 @@ const Reserva = {
     `;
     const [result] = await db.query(sql, [status, idReserva, idCliente]);
 
-    // Retorna true se alguma linha foi atualizada, false caso contrário
     return result.affectedRows > 0;
-  },  
+  },
 
   delete: async (id) => {
     const [result] = await db.query('DELETE FROM RESERVA WHERE idReserva = ?', [id]);
     return result;
+  },
+
+  simularValor: async (idTipoQuarto, checkIn, checkOut) => {
+    const [resultado] = await db.query(
+      `SELECT SimularValorReserva(?, ?, ?) AS valorTotal`,
+      [idTipoQuarto, checkIn, checkOut]
+    );
+    return resultado;
   }
+
 };
 
 module.exports = Reserva;

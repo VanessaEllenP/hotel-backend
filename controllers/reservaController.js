@@ -4,7 +4,7 @@ const Hospedagem = require('../models/hospedagemModel');
 const reservaController = {
   // Listar reservas do cliente logado
   listar: async (req, res) => {
-    const clienteId = req.cliente.id; // vem do token
+    const clienteId = req.cliente.id;
     try {
       const results = await Reserva.getByClienteId(clienteId);
       res.json(results);
@@ -13,7 +13,7 @@ const reservaController = {
     }
   },
 
-  // Buscar reserva por ID, mas apenas se for do cliente logado
+  // Buscar reserva por ID, só se for do cliente logado
   buscarPorId: async (req, res) => {
     const id = req.params.id;
     const clienteId = req.cliente.id;
@@ -31,25 +31,43 @@ const reservaController = {
     }
   },
 
+  // Simular valor da reserva
+  simularValor: async (req, res) => {
+    const { idTipoQuarto, checkIn, checkOut } = req.body;
+
+    try {
+      const [resultado] = await Reserva.simularValor(idTipoQuarto, checkIn, checkOut);
+      const valorTotal = resultado[0].valorTotal;
+      res.json({ valorTotal });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ erro: 'Erro ao simular valor da reserva.' });
+    }
+  },
+
   // Criar reserva vinculada ao cliente logado
   criar: async (req, res) => {
     const novaReserva = req.body;
-    novaReserva.FK_CLIENTE_idCliente = req.cliente.id; // <- CORRETO
-    
+    novaReserva.FK_CLIENTE_idCliente = req.cliente.id;
+
+    // Aqui novaReserva deve conter qntPessoas, se enviado pelo front
+
     try {
-      const result = await Reserva.create(novaReserva); // O valor total será calculado no modelo
+      const result = await Reserva.create(novaReserva);
       res.status(201).json({ mensagem: 'Reserva cadastrada com sucesso!', id: result.insertId });
     } catch (err) {
       console.error(err);
       res.status(500).json({ erro: 'Erro ao cadastrar reserva.' });
     }
-  },  
+  },
 
   // Atualizar somente se for do cliente logado
   atualizar: async (req, res) => {
     const id = req.params.id;
     const dados = req.body;
     const clienteId = req.cliente.id;
+
+    // dados deve conter qntPessoas se o front enviar
 
     try {
       const reserva = await Reserva.getById(id);
@@ -60,7 +78,7 @@ const reservaController = {
         return res.status(403).json({ mensagem: 'Você não tem permissão para atualizar esta reserva.' });
       }
 
-      await Reserva.update(id, dados); // O valor total será recalculado no modelo
+      await Reserva.update(id, dados);
       res.json({ mensagem: 'Reserva atualizada com sucesso!' });
     } catch (err) {
       res.status(500).json({ erro: 'Erro ao atualizar reserva.' });
@@ -92,10 +110,9 @@ const reservaController = {
   confirmarEIniciarHospedagem: async (req, res) => {
     const idReserva = req.params.id;
     const clienteId = req.cliente.id;
-    const { valorExtra, FK_FUNCIONARIO_idFuncionario } = req.body; // opcional, adapte conforme seu modelo
+    const { valorExtra, FK_FUNCIONARIO_idFuncionario } = req.body;
 
     try {
-      // 1. Verifica se a reserva existe e pertence ao cliente
       const reserva = await Reserva.getById(idReserva);
       if (reserva.length === 0) {
         return res.status(404).json({ mensagem: 'Reserva não encontrada.' });
@@ -104,10 +121,8 @@ const reservaController = {
         return res.status(403).json({ mensagem: 'Você não tem permissão para confirmar esta reserva.' });
       }
 
-      // 2. Atualiza o status da reserva para 'confirmada'
       await Reserva.updateStatus(idReserva, 'confirmada');
 
-      // 3. Cria a hospedagem vinculada à reserva
       const novaHospedagem = {
         statusHospedagem: 'ATIVA',
         valorExtra: valorExtra || 0,

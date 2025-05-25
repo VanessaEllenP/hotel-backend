@@ -18,4 +18,7 @@ router.put('/:id', autenticarCliente, reservaController.atualizar);
 // Deletar reserva somente se for do cliente logado
 router.delete('/:id', autenticarCliente, reservaController.deletar);
 
+// Confirmar reserva e criar hospedagem automaticamente
+router.post('/:id/confirmar', autenticarCliente, reservaController.confirmarEIniciarHospedagem);
+
 module.exports = router;
