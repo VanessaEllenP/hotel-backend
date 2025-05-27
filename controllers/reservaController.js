@@ -106,43 +106,6 @@ const reservaController = {
     }
   },
 
-  // Confirmar reserva e criar hospedagem automaticamente
-  confirmarEIniciarHospedagem: async (req, res) => {
-    const idReserva = req.params.id;
-    const clienteId = req.cliente.id;
-    const { valorExtra, FK_FUNCIONARIO_idFuncionario } = req.body;
-
-    try {
-      const reserva = await Reserva.getById(idReserva);
-      if (reserva.length === 0) {
-        return res.status(404).json({ mensagem: 'Reserva não encontrada.' });
-      }
-      if (reserva[0].FK_CLIENTE_idCliente !== clienteId) {
-        return res.status(403).json({ mensagem: 'Você não tem permissão para confirmar esta reserva.' });
-      }
-
-      await Reserva.updateStatus(idReserva, 'confirmada');
-
-      const novaHospedagem = {
-        statusHospedagem: 'ATIVA',
-        valorExtra: valorExtra || 0,
-        FK_CLIENTE_idCliente: clienteId,
-        FK_FUNCIONARIO_idFuncionario: FK_FUNCIONARIO_idFuncionario || null,
-        FK_RESERVA_idReserva: idReserva
-      };
-
-      const resultadoHospedagem = await Hospedagem.create(novaHospedagem);
-
-      res.status(201).json({
-        mensagem: 'Reserva confirmada e hospedagem criada com sucesso!',
-        idHospedagem: resultadoHospedagem.insertId
-      });
-
-    } catch (err) {
-      console.error(err);
-      res.status(500).json({ erro: 'Erro ao confirmar reserva e criar hospedagem.' });
-    }
-  }
 };
 
 module.exports = reservaController;

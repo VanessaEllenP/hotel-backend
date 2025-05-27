@@ -73,18 +73,6 @@ const Reserva = {
     return result;
   },
 
-  updateStatus: async (idReserva, status, idCliente) => {
-    // Atualiza o status apenas se a reserva pertencer ao cliente
-    const sql = `
-      UPDATE RESERVA 
-      SET statusReserva = ?
-      WHERE idReserva = ? AND FK_CLIENTE_idCliente = ?
-    `;
-    const [result] = await db.query(sql, [status, idReserva, idCliente]);
-
-    return result.affectedRows > 0;
-  },
-
   delete: async (id) => {
     const [result] = await db.query('DELETE FROM RESERVA WHERE idReserva = ?', [id]);
     return result;
