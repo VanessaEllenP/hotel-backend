@@ -44,15 +44,19 @@ const Reserva = {
     return result;
   },
 
-  update: async (id, reservaAtualizada) => {
-    // Calcular o valor total usando a função SimularValorReserva
+update: async (id, reservaAtualizada) => {
+  if (reservaAtualizada.statusReserva === 'CONFIRMADA') {
+    // Chamar a stored procedure que confirma a reserva e cria a hospedagem
+    const [result] = await db.query(`CALL ConfirmarReservaECriarHospedagem(?)`, [id]);
+    return result;
+  } else {
+    // Atualização comum se não for CONFIRMAÇÃO
     const [resultado] = await db.query(`
       SELECT SimularValorReserva(?, ?, ?) AS valorTotal
     `, [reservaAtualizada.FK_TIPOQUARTO_idTipoQuarto, reservaAtualizada.dtInicial, reservaAtualizada.dtFinal]);
 
     const valorTotal = resultado[0].valorTotal;
 
-    // Atualizar a reserva com o valor total calculado e quantidade de pessoas
     const sql = `
       UPDATE RESERVA 
       SET dtInicial = ?, dtFinal = ?, qntPessoas = ?, statusReserva = ?, 
@@ -62,7 +66,7 @@ const Reserva = {
     const values = [
       reservaAtualizada.dtInicial,
       reservaAtualizada.dtFinal,
-      reservaAtualizada.qntPessoas || 1,  // padrão 1 se não informar
+      reservaAtualizada.qntPessoas || 1,
       reservaAtualizada.statusReserva,
       reservaAtualizada.FK_CLIENTE_idCliente,
       reservaAtualizada.FK_TIPOQUARTO_idTipoQuarto,
@@ -71,7 +75,8 @@ const Reserva = {
     ];
     const [result] = await db.query(sql, values);
     return result;
-  },
+  }
+},
 
   delete: async (id) => {
     const [result] = await db.query('DELETE FROM RESERVA WHERE idReserva = ?', [id]);

@@ -50,8 +50,6 @@ const reservaController = {
     const novaReserva = req.body;
     novaReserva.FK_CLIENTE_idCliente = req.cliente.id;
 
-    // Aqui novaReserva deve conter qntPessoas, se enviado pelo front
-
     try {
       const result = await Reserva.create(novaReserva);
       res.status(201).json({ mensagem: 'Reserva cadastrada com sucesso!', id: result.insertId });
@@ -67,8 +65,6 @@ const reservaController = {
     const dados = req.body;
     const clienteId = req.cliente.id;
 
-    // dados deve conter qntPessoas se o front enviar
-
     try {
       const reserva = await Reserva.getById(id);
       if (reserva.length === 0) {
@@ -79,7 +75,12 @@ const reservaController = {
       }
 
       await Reserva.update(id, dados);
-      res.json({ mensagem: 'Reserva atualizada com sucesso!' });
+
+      if (dados.statusReserva === 'CONFIRMADA') {
+        return res.json({ mensagem: 'Reserva confirmada e hospedagem criada com sucesso!' });
+      } else {
+        return res.json({ mensagem: 'Reserva atualizada com sucesso!' });
+      }
     } catch (err) {
       res.status(500).json({ erro: 'Erro ao atualizar reserva.' });
     }
@@ -105,7 +106,6 @@ const reservaController = {
       res.status(500).json({ erro: 'Erro ao excluir reserva.' });
     }
   },
-
 };
 
 module.exports = reservaController;
