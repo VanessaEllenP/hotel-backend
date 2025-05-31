@@ -42,10 +42,6 @@ exports.criarCliente = async (req, res) => {
 
   try {
     // Criptografa a senha
-    const senhaCriptografada = await bcrypt.hash(novoCliente.senha, 10);
-    novoCliente.senha = senhaCriptografada;
-
-    // Cria cliente e pega o insertId direto do model
     const idCliente = await Cliente.criar(novoCliente);
 
     // Se vier lista de telefones no corpo, cria os telefones
