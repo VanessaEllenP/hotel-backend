@@ -29,6 +29,13 @@ const Telefone = {
   deletarPorCliente: async (idCliente) => {
     const [resultado] = await db.query('DELETE FROM TELEFONE WHERE FK_CLIENTE_idCliente = ?', [idCliente]);
     return resultado;
+  },
+
+  // Atualizar telefone do cliente (deleta os antigos e cria os novos)
+  atualizarTelefone: async (idCliente, telefones) => {
+    // telefones: array de { ddd, telefone }
+    await Telefone.deletarPorCliente(idCliente);
+    await Telefone.criarTelefones(telefones, idCliente);
   }
 };
 

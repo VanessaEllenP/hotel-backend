@@ -14,4 +14,7 @@ router.post('/', telefoneController.criar);
 // Deletar todos os telefones de um cliente
 router.delete('/cliente/:idCliente', telefoneController.deletarPorCliente);
 
+// Atualizar telefone de um cliente
+router.put('/cliente/:idCliente', telefoneController.atualizarTelefone);
+
 module.exports = router;

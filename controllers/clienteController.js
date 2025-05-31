@@ -45,7 +45,7 @@ exports.criarCliente = async (req, res) => {
     const senhaCriptografada = await bcrypt.hash(novoCliente.senha, 10);
     novoCliente.senha = senhaCriptografada;
 
-    // Cria cliente e pega o insertId direto do model (alteração aqui)
+    // Cria cliente e pega o insertId direto do model
     const idCliente = await Cliente.criar(novoCliente);
 
     // Se vier lista de telefones no corpo, cria os telefones
@@ -75,20 +75,32 @@ exports.atualizarCliente = async (req, res) => {
     return res.status(400).json({ erro: 'Data de nascimento é obrigatória' });
   }
 
-  // Se a senha for alterada, criptografe-a novamente
-  if (dadosAtualizados.senha) {
+  // Busca email atual se não enviado
+  if (!dadosAtualizados.email) {
+    try {
+      const clienteAtual = await Cliente.buscarPorId(id);
+      if (!clienteAtual) {
+        return res.status(404).json({ erro: 'Cliente não encontrado' });
+      }
+      dadosAtualizados.email = clienteAtual.email;
+    } catch (err) {
+      console.error(err);
+      return res.status(500).json({ erro: 'Erro ao buscar cliente para atualizar' });
+    }
+  }
+
+  // Criptografa senha se for enviada
+  if (dadosAtualizados.senha && typeof dadosAtualizados.senha === 'string' && dadosAtualizados.senha.trim() !== '') {
     dadosAtualizados.senha = await bcrypt.hash(dadosAtualizados.senha, 10);
+  } else {
+    delete dadosAtualizados.senha;
   }
 
   try {
-    // Atualiza dados do cliente
     await Cliente.atualizar(id, dadosAtualizados);
 
-    // Atualiza telefones, se enviados
     if (dadosAtualizados.telefones && Array.isArray(dadosAtualizados.telefones)) {
-      // Apaga telefones antigos
       await Telefone.deletarPorCliente(id);
-      // Insere os novos, se houver
       if (dadosAtualizados.telefones.length > 0) {
         await Telefone.criarTelefones(dadosAtualizados.telefones, id);
       }
@@ -98,6 +110,60 @@ exports.atualizarCliente = async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ erro: 'Erro ao atualizar cliente' });
+  }
+};
+
+// Atualizar somente o e-mail do cliente (somente o próprio cliente pode atualizar)
+exports.atualizarEmailCliente = async (req, res) => {
+  const id = parseInt(req.params.id);
+  const clienteLogadoId = req.cliente.id;
+  const { email } = req.body;
+
+  if (id !== clienteLogadoId) {
+    return res.status(403).json({ erro: 'Você só pode atualizar seu próprio e-mail' });
+  }
+
+  if (!email || typeof email !== 'string' || email.trim() === '') {
+    return res.status(400).json({ erro: 'E-mail inválido' });
+  }
+
+  try {
+    await Cliente.atualizarEmail(id, email.trim());
+    res.json({ mensagem: 'E-mail atualizado com sucesso' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ erro: 'Erro ao atualizar e-mail' });
+  }
+};
+
+// Atualizar somente a senha do cliente (somente o próprio cliente pode atualizar)
+// Agora com validação da senha atual
+exports.atualizarSenhaCliente = async (req, res) => {
+  const id = parseInt(req.params.id);
+  const clienteLogadoId = req.cliente.id;
+  const { senhaAtual, senha } = req.body;
+
+  if (id !== clienteLogadoId) {
+    return res.status(403).json({ erro: 'Você só pode atualizar sua própria senha' });
+  }
+
+  if (!senhaAtual || typeof senhaAtual !== 'string' || senhaAtual.trim() === '') {
+    return res.status(400).json({ erro: 'Senha atual inválida' });
+  }
+
+  if (!senha || typeof senha !== 'string' || senha.trim() === '') {
+    return res.status(400).json({ erro: 'Senha nova inválida' });
+  }
+
+  try {
+    await Cliente.alterarSenhaComVerificacao(id, senhaAtual, senha);
+    res.json({ mensagem: 'Senha atualizada com sucesso' });
+  } catch (err) {
+    if (err.message === 'Senha atual incorreta') {
+      return res.status(400).json({ erro: 'Senha inválida' });
+    }
+    console.error(err);
+    res.status(500).json({ erro: 'Erro ao atualizar senha' });
   }
 };
 

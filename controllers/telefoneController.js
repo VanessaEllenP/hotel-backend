@@ -37,6 +37,23 @@ exports.criar = async (req, res) => {
   }
 };
 
+// Atualizar telefone(s) do cliente
+exports.atualizarTelefone = async (req, res) => {
+  const idCliente = parseInt(req.params.idCliente);
+  const telefones = req.body.telefones;
+
+  if (!idCliente || !Array.isArray(telefones)) {
+    return res.status(400).json({ erro: 'Informe o idCliente e a lista de telefones' });
+  }
+
+  try {
+    await Telefone.atualizarTelefone(idCliente, telefones);
+    res.json({ mensagem: 'Telefone(s) atualizado(s) com sucesso!' });
+  } catch (err) {
+    res.status(500).json({ erro: 'Erro ao atualizar telefone(s)' });
+  }
+};
+
 // Deletar todos os telefones de um cliente
 exports.deletarPorCliente = async (req, res) => {
   const idCliente = parseInt(req.params.idCliente);

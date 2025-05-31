@@ -3,19 +3,22 @@ const router = express.Router();
 const clienteController = require('../controllers/clienteController');
 const autenticarToken = require('../middlewares/autenticarToken');
 
-// Cadastro de cliente
-router.post('/', clienteController.criarCliente);
+// Rotas públicas
+router.post('/', clienteController.criarCliente); // Cadastro
 
-// Listar todos os clientes
-router.get('/', autenticarToken, clienteController.listarClientes);
+// Rotas autenticadas
+router.use(autenticarToken);
 
-// Buscar cliente por ID
-router.get('/:id', autenticarToken, clienteController.buscarClientePorId);
+// Listagem e leitura
+router.get('/', clienteController.listarClientes); // Listar todos (uso interno)
+router.get('/:id', clienteController.buscarClientePorId); // Buscar por ID
 
-// Atualizar cliente
-router.put('/:id', autenticarToken, clienteController.atualizarCliente);
+// Atualizações
+router.put('/:id', clienteController.atualizarCliente); // Atualização completa
+router.patch('/:id/email', clienteController.atualizarEmailCliente); // Atualizar email
+router.patch('/:id/senha', clienteController.atualizarSenhaCliente); // Atualizar senha
 
-// Deletar cliente 
-router.delete('/:id', autenticarToken, clienteController.deletarCliente);
+// Remoção
+router.delete('/:id', clienteController.deletarCliente); // Deletar conta
 
 module.exports = router;
