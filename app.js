@@ -19,6 +19,20 @@ const tipoQuartoComodidadeRoutes = require('./routes/tipoQuartoComodidadeRoutes'
 const funcionarioRoutes = require('./routes/funcionarioRoutes');
 const telefoneRoutes = require('./routes/telefoneRoutes');
 const authRoutes = require('./routes/authRoutes');
+const connection = require('./database/connection'); 
+
+// Testa conexão com o banco no start do servidor
+async function testarConexao() {
+  try {
+    const [rows] = await connection.query('SELECT NOW() AS agora');
+    console.log('Banco conectado! Hora do servidor:', rows[0].agora);
+  } catch (error) {
+    console.error('Erro ao conectar no banco:', error);
+  }
+}
+
+testarConexao();
+
 
 // Inicia o servidor
 const PORT = 3000;
