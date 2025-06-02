@@ -9,7 +9,8 @@ const connection = mysql.createPool({
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
   ssl: {
-    ca: fs.readFileSync('./certificate/ca.pem')
+    ca: fs.readFileSync('./certificate/ca.pem'),
+    rejectUnauthorized: true
   }
 });
 
